@@ -556,7 +556,6 @@ padding: 8px;
 <div id="registerPage" class="auth-container" style="display:none;">
 <div class="auth-box">
 <h2>✍️ إنشاء حساب جديد</h2>
-<input id="regName" type="text" placeholder="ادخل اسمك">
 <input id="regEmail" type="email" placeholder="ادخل ايميلك">
 <input type="password" id="regPassword" placeholder="كلمة المرور">
 <input type="password" id="regPasswordConfirm" placeholder="تأكيد كلمة المرور">
@@ -805,14 +804,13 @@ const apps=[
 
 let selectedApp="", selectedAmount=0, selectedPrice=0;
 
-// 📝 التسجيل
+// 📝 التسجيل - تم حذف حقل الاسم بناء على طلبك
 async function register(){
-  const name = document.getElementById("regName").value.trim();
   const email = document.getElementById("regEmail").value.trim();
   const password = document.getElementById("regPassword").value.trim();
   const passwordConfirm = document.getElementById("regPasswordConfirm").value.trim();
   
-  if(!email||!password||!passwordConfirm||!name){
+  if(!email||!password||!passwordConfirm){
     alert("❌ ادخل جميع الحقول");
     return;
   }
@@ -837,13 +835,12 @@ async function register(){
     await supabaseClient.from("users").insert([{
       id: data.user.id,
       email: email,
-      name: name,
+      name: email.split('@')[0], // نستخدم بداية الإيميل كإسم افتراضي
       code: code,
       balance: 0
     }]);
     
     alert("✅ تم إنشاء الحساب بنجاح!");
-    document.getElementById("regName").value="";
     document.getElementById("regEmail").value="";
     document.getElementById("regPassword").value="";
     document.getElementById("regPasswordConfirm").value="";
@@ -924,17 +921,13 @@ function convertCurrency(type){
   document.getElementById(resultSpan).innerText = usdAmount.toFixed(2);
 }
 
-// تعديل وظيفة حساب السعر ليكون أكثر دقة كما في الاقتراح
 function calculateAppPrice() {
   let amount = parseFloat(document.getElementById("appAmount").value) || 0;
   let app = selectedApp;
   let price = 0;
 
   if (appPrices[app]) {
-    // جلب الفئات وترتيبها من الأكبر للأصغر
     let qtys = Object.keys(appPrices[app]).map(Number).sort((a, b) => b - a);
-    
-    // العثور على أنسب سعر للكمية المطلوبة
     for (let qty of qtys) {
       if (amount >= qty) {
         price = (amount / qty) * appPrices[app][qty];
@@ -1023,8 +1016,10 @@ async function setBalance(amount){
 function hideAll(){
   ["home","appPage","balancePage","shamSYP","shamUSD","bankPage","ordersPage","paymentsPage","adminPage"].forEach(id=>{
     let el=document.getElementById(id);
-    el.classList.remove("show");
-    el.style.display="none";
+    if(el){
+        el.classList.remove("show");
+        el.style.display="none";
+    }
   });
   document.getElementById("sidebar").classList.remove("open");
   document.getElementById("overlay").style.display="none";
@@ -1047,7 +1042,9 @@ async function updateAdminStats(){
   const { data: orders } = await supabaseClient.from("orders").select("*");
   
   let totalSales = 0;
-  orders.forEach(o => totalSales += o.price);
+  if(orders){
+      orders.forEach(o => totalSales += o.price);
+  }
   
   document.getElementById("totalUsers").innerText = users?.length || 0;
   document.getElementById("totalOrders").innerText = orders?.length || 0;
@@ -1207,8 +1204,10 @@ function openPayments(){
 function openOrders(){
   hideAll();
   let ordersPage=document.getElementById("ordersPage");
-  ordersPage.classList.add("show");
-  ordersPage.style.display="flex";
+  if(ordersPage){
+      ordersPage.classList.add("show");
+      ordersPage.style.display="flex";
+  }
   loadOrders();
 }
 
@@ -1447,12 +1446,13 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 
-// تحديث البيانات كل 30 ثانية
 setInterval(() => {
-  if(document.getElementById("ordersPage").classList.contains("show")){
+  let ordersPage = document.getElementById("ordersPage");
+  if(ordersPage && ordersPage.classList.contains("show")){
     loadOrders();
   }
-  if(document.getElementById("paymentsPage").style.display!=="none"){
+  let paymentsPage = document.getElementById("paymentsPage");
+  if(paymentsPage && paymentsPage.style.display!=="none"){
     loadPayments();
   }
 }, 30000);
